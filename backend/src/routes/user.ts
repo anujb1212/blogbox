@@ -16,7 +16,7 @@ export const userRouter = new Hono<Environment>();
 userRouter.post('/signup', async (c) => {
     try {
         const prisma = new PrismaClient({
-            datasourceUrl: c.env?.DATABASE_URL,
+            datasourceUrl: c.env.DATABASE_URL,
         }).$extends(withAccelerate())
 
         const body = await c.req.json();
@@ -37,6 +37,7 @@ userRouter.post('/signup', async (c) => {
         c.status(500)
         return c.json({ error: "Error while signing up" })
     }
+
 })
 
 //Route for an existing user signing in

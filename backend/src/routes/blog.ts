@@ -16,16 +16,23 @@ interface Environment {
 export const blogRouter = new Hono<Environment>();
 
 blogRouter.use('/*', async (c, next) => {
-    const authHeader = c.req.header("Authorization") || ""
+    try {
+        const authHeader = c.req.header("Authorization") || ""
 
-    const token = authHeader.split(' ')[1]
+        const token = authHeader.split(' ')[1]
 
-    const user = await verify(token, c.env.JWT_SECRET)
+        const user = await verify(token, c.env.JWT_SECRET)
 
-    if (user && typeof user.id === 'string') {
-        c.set("userId", user.id)
-        await next()
-    } else {
+        if (user && typeof user.id === 'string') {
+            c.set("userId", user.id)
+            await next()
+        } else {
+            c.status(403)
+            return c.json({ error: "Unauthorized" })
+        }
+
+    } catch (err) {
+        console.error(err)
         c.status(403)
         return c.json({ error: "Unauthorized" })
     }
@@ -55,7 +62,7 @@ blogRouter.post('/', async (c) => {
     } catch (err) {
         console.error("Post Error:", err)
         c.status(403)
-        c.json({ message: "" })
+        c.json({ message: "Post not created" })
     }
 })
 
@@ -84,7 +91,7 @@ blogRouter.put('/', async (c) => {
     } catch (err) {
         console.error(err)
         c.status(403)
-        c.json({ message: "" })
+        c.json({ message: "Post did not update" })
     }
 })
 
@@ -92,7 +99,11 @@ blogRouter.put('/', async (c) => {
 blogRouter.get('/bulk', async (c) => {
     try {
         const prisma = new PrismaClient({
-            datasourceUrl: c.env?.DATABASE_URL,
+            datasources: {
+                db: {
+                    url: c.env?.DATABASE_URL,
+                }
+            }
         }).$extends(withAccelerate())
 
         const allBlogPosts = await prisma.post.findMany()

@@ -172,9 +172,9 @@ const config = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider  = \"postgresql\"\n  url       = env(\"DATABASE_URL\")\n  directUrl = env(\"DIRECT_URL\")\n}\n\nmodel User {\n  id       String  @id @default(uuid())\n  email    String  @unique\n  name     String?\n  password String\n  posts    Post[]\n}\n\nmodel Post {\n  id        String  @id @default(uuid())\n  title     String\n  content   String\n  published Boolean @default(false)\n  author    User    @relation(fields: [authorId], references: [id])\n  authorId  String\n}\n",
-  "inlineSchemaHash": "81f9b20750b8ab76c8e01fce0c2811fd7e16a4bbcf241d898d18b1861e09a3f0",
-  "copyEngine": false
+  "inlineSchema": "generator client {\n  provider   = \"prisma-client-js\"\n  output     = \"../src/generated/prisma\"\n  engineType = \"edge\"\n}\n\ndatasource db {\n  provider  = \"postgresql\"\n  url       = env(\"DATABASE_URL\")\n  directUrl = env(\"DIRECT_URL\")\n}\n\nmodel User {\n  id       String  @id @default(uuid())\n  email    String  @unique\n  name     String?\n  password String\n  posts    Post[]\n}\n\nmodel Post {\n  id        String  @id @default(uuid())\n  title     String\n  content   String\n  published Boolean @default(false)\n  author    User    @relation(fields: [authorId], references: [id])\n  authorId  String\n}\n",
+  "inlineSchemaHash": "050c4598710e34066a456054090f1d831791a1a29c9a45165f784b1ad3e15ac6",
+  "copyEngine": true
 }
 config.dirname = '/'
 
