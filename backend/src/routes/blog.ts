@@ -1,3 +1,4 @@
+import { createBlog, updateBlog } from '@anujb_dev/blogbox-common';
 import { PrismaClient } from '../generated/prisma/edge';
 import { withAccelerate } from '@prisma/extension-accelerate';
 import { Hono } from "hono";
@@ -46,6 +47,13 @@ blogRouter.post('/', async (c) => {
         }).$extends(withAccelerate())
 
         const body = await c.req.json();
+        const { success } = createBlog.safeParse(body)
+        if (!success) {
+            c.status(411)
+            return c.json({
+                message: "Invalid Inputs"
+            })
+        }
         const authorId = c.get("userId")
         const newBlogPost = await prisma.post.create({
             data: {
@@ -58,7 +66,6 @@ blogRouter.post('/', async (c) => {
         return c.json({
             id: newBlogPost.id
         })
-
     } catch (err) {
         console.error("Post Error:", err)
         c.status(403)
@@ -74,6 +81,13 @@ blogRouter.put('/', async (c) => {
         }).$extends(withAccelerate())
 
         const body = await c.req.json();
+        const { success } = updateBlog.safeParse(body)
+        if (!success) {
+            c.status(411)
+            return c.json({
+                message: "Invalid Inputs"
+            })
+        }
         const updateBlogPost = await prisma.post.update({
             where: {
                 id: body.id
@@ -87,7 +101,6 @@ blogRouter.put('/', async (c) => {
         return c.json({
             id: updateBlogPost.id
         })
-
     } catch (err) {
         console.error(err)
         c.status(403)

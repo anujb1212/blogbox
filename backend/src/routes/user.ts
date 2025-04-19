@@ -1,3 +1,4 @@
+import { signinInput, signupInput } from '@anujb_dev/blogbox-common';
 import { PrismaClient } from '../generated/prisma/edge';
 import { withAccelerate } from '@prisma/extension-accelerate';
 import { Hono } from "hono";
@@ -20,6 +21,14 @@ userRouter.post('/signup', async (c) => {
         }).$extends(withAccelerate())
 
         const body = await c.req.json();
+        const { success } = signupInput.safeParse(body)
+        if (!success) {
+            c.status(411)
+            return c.json({
+                message: "Invalid Inputs"
+            })
+        }
+
         const newUser = await prisma.user.create({
             data: {
                 email: body.email,
@@ -48,7 +57,13 @@ userRouter.post('/signin', async (c) => {
         }).$extends(withAccelerate())
 
         const body = await c.req.json()
-
+        const { success } = signinInput.safeParse(body)
+        if (!success) {
+            c.status(411)
+            return c.json({
+                message: "Invalid Inputs"
+            })
+        }
         const existingUser = await prisma.user.findFirst({
             where: {
                 email: body.email,
