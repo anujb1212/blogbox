@@ -39,7 +39,7 @@ userRouter.post('/signup', async (c) => {
         const token = await sign({ id: newUser.id }, c.env.JWT_SECRET)
 
         return c.json({
-            jwt: token
+            token: token
         })
     } catch (err) {
         console.error("Signup error:", err)
@@ -76,8 +76,10 @@ userRouter.post('/signin', async (c) => {
             return c.json({ error: "User not found" })
         }
 
-        const jwt = await sign({ id: existingUser.id }, c.env.JWT_SECRET)
-        return c.json({ jwt })
+        const token = await sign({ id: existingUser.id }, c.env.JWT_SECRET)
+        return c.json({
+            token: token
+        })
 
     } catch (err) {
         console.error("Signin error:", err)

@@ -16,11 +16,86 @@ interface Environment {
 
 export const blogRouter = new Hono<Environment>();
 
+//Route for fetching all the blogs
+blogRouter.get('/bulk', async (c) => {
+    try {
+        const prisma = new PrismaClient({
+            datasources: {
+                db: {
+                    url: c.env?.DATABASE_URL,
+                }
+            }
+        }).$extends(withAccelerate());
+
+        const allBlogPosts = await prisma.post.findMany({
+            select: {
+                id: true,
+                title: true,
+                content: true,
+                createdAt: true,
+                author: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        });
+
+
+        return c.json({
+            allBlogPosts
+        });
+
+    } catch (err) {
+        console.error(err);
+        return c.json({ message: "Error while fetching all the blog posts" }, 500);
+    }
+});
+
+//Route to access existing blog post
+blogRouter.get('/:id', async (c) => {
+    try {
+        const prisma = new PrismaClient({
+            datasourceUrl: c.env?.DATABASE_URL,
+        }).$extends(withAccelerate())
+
+        const id = c.req.param("id");
+        const existingBlogPost = await prisma.post.findFirst({
+            where: {
+                id: id
+            },
+            select: {
+                id: true,
+                title: true,
+                content: true,
+                author: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        })
+
+        return c.json({
+            existingBlogPost
+        })
+
+
+    } catch (err) {
+        console.error(err)
+        c.status(403)
+        c.json({ message: "Error while fetching your blog post" })
+    }
+})
+
 blogRouter.use('/*', async (c, next) => {
     try {
-        const authHeader = c.req.header("Authorization") || ""
+        const authHeader = c.req.header("Authorization") || "";
+        if (!authHeader.startsWith("Bearer ")) {
+            return c.json({ error: "Unauthorized" }, 403);
+        }
 
-        const token = authHeader.split(' ')[1]
+        const token = authHeader.split(" ")[1];
 
         const user = await verify(token, c.env.JWT_SECRET)
 
@@ -31,6 +106,9 @@ blogRouter.use('/*', async (c, next) => {
             c.status(403)
             return c.json({ error: "Unauthorized" })
         }
+
+        console.log("Authorization Header:", c.req.header("Authorization"));
+
 
     } catch (err) {
         console.error(err)
@@ -108,51 +186,4 @@ blogRouter.put('/', async (c) => {
     }
 })
 
-//Route for fetching all the blogs
-blogRouter.get('/bulk', async (c) => {
-    try {
-        const prisma = new PrismaClient({
-            datasources: {
-                db: {
-                    url: c.env?.DATABASE_URL,
-                }
-            }
-        }).$extends(withAccelerate())
 
-        const allBlogPosts = await prisma.post.findMany()
-
-        return c.json({
-            allBlogPosts
-        })
-
-    } catch (err) {
-        console.error(err)
-        c.status(403)
-        c.json({ message: "Error while fetching all the blog posts" })
-    }
-})
-
-//Route to access existing blog post
-blogRouter.get('/:id', async (c) => {
-    try {
-        const prisma = new PrismaClient({
-            datasourceUrl: c.env?.DATABASE_URL,
-        }).$extends(withAccelerate())
-
-        const id = c.req.param("id");
-        const existingBlogPost = await prisma.post.findFirst({
-            where: {
-                id: id
-            }
-        })
-
-        return c.json({
-            existingBlogPost
-        })
-
-    } catch (err) {
-        console.error(err)
-        c.status(403)
-        c.json({ message: "Error while fetching your blog post" })
-    }
-})

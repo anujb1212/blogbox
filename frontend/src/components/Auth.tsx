@@ -1,8 +1,8 @@
 import { SignupInput } from "@anujb_dev/blogbox-common";
-import axios from "axios";
 import { ChangeEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BACKEND_URL } from "../config";
+import axios from "axios";
 
 interface AuthProps {
     type: "signup" | "signin";
@@ -20,7 +20,7 @@ const Auth = (props: AuthProps) => {
     async function authRequest() {
         try {
             const response = await axios.post(`${BACKEND_URL}/api/v1/user/${type === "signup" ? "signup" : "signin"}`, credentials)
-            const jwt = response.data
+            const jwt = response.data.jwt
             localStorage.setItem("token", jwt)
             navigate("/blogs")
         } catch (err: unknown) {
