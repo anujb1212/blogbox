@@ -20,7 +20,7 @@ const Auth = (props: AuthProps) => {
     async function authRequest() {
         try {
             const response = await axios.post(`${BACKEND_URL}/api/v1/user/${type === "signup" ? "signup" : "signin"}`, credentials)
-            const jwt = response.data.jwt
+            const jwt = response.data.token
             localStorage.setItem("token", jwt)
             navigate("/blogs")
         } catch (err: unknown) {

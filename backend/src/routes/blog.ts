@@ -117,39 +117,44 @@ blogRouter.use('/*', async (c, next) => {
     }
 })
 
-//Route for creating a new blog post
-blogRouter.post('/', async (c) => {
+// Route for creating a new blog post
+blogRouter.post("/", async (c) => {
     try {
         const prisma = new PrismaClient({
             datasourceUrl: c.env?.DATABASE_URL,
-        }).$extends(withAccelerate())
+        }).$extends(withAccelerate());
 
         const body = await c.req.json();
-        const { success } = createBlog.safeParse(body)
+        const { success } = updateBlog.safeParse(body)
         if (!success) {
             c.status(411)
             return c.json({
                 message: "Invalid Inputs"
             })
         }
-        const authorId = c.get("userId")
+
+        const authorId = c.get("userId");
+
         const newBlogPost = await prisma.post.create({
             data: {
                 title: body.title,
                 content: body.content,
-                authorId: authorId
-            }
-        })
+                authorId: authorId,
+            },
+        });
 
         return c.json({
-            id: newBlogPost.id
-        })
+            id: newBlogPost.id,
+            title: newBlogPost.title,
+            createdAt: newBlogPost.createdAt,
+        });
     } catch (err) {
-        console.error("Post Error:", err)
-        c.status(403)
-        c.json({ message: "Post not created" })
+        console.error("Post Error:", err);
+        c.status(403);
+        return c.json({ message: "Post not created" });
     }
-})
+});
+
 
 //Route for updating the blog post
 blogRouter.put('/', async (c) => {

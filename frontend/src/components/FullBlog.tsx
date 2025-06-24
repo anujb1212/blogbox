@@ -3,7 +3,7 @@ import { Avatar } from "./BlogCard";
 import NavBar from "./NavBar";
 
 const FullBlog = ({ blog }: { blog: Blog }) => {
-    const publishedDate = new Date().toLocaleDateString("en-IN", {
+    const publishedDate = new Date(blog.createdAt || blog.publishedAt || Date.now()).toLocaleDateString("en-IN", {
         day: "numeric",
         month: "long",
         year: "numeric"
@@ -23,9 +23,10 @@ const FullBlog = ({ blog }: { blog: Blog }) => {
                         <p className="text-sm text-gray-500 mb-6">
                             Posted on {publishedDate}
                         </p>
-                        <div className="text-lg leading-relaxed text-gray-800 whitespace-pre-line">
-                            {blog.content}
-                        </div>
+                        <div
+                            className="text-lg leading-relaxed text-gray-800"
+                            dangerouslySetInnerHTML={{ __html: blog.content }} // render HTML
+                        />
                     </div>
 
                     {/* Author Sidebar */}
@@ -52,4 +53,4 @@ const FullBlog = ({ blog }: { blog: Blog }) => {
     );
 };
 
-export default FullBlog;
+export default FullBlog
