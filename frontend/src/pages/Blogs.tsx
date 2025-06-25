@@ -1,11 +1,12 @@
 import { BlogCard } from "../components/BlogCard";
+import BlogsSkeleton from "../components/BlogsSkeleton";
 import NavBar from "../components/NavBar";
 import { useBlogs } from "../hooks";
 
 const Blogs = () => {
     const { loading, blogs } = useBlogs();
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return <BlogsSkeleton count={6} />
 
     if (!blogs || blogs.length === 0) return <div>No blogs found</div>;
 

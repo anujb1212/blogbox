@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import FullBlog from "../components/FullBlog";
 import { useBlog } from "../hooks";
+import FullBlogSkeleton from "../components/FullBlogSkeleton";
 
 const Blog = () => {
     const navigate = useNavigate();
@@ -18,7 +19,7 @@ const Blog = () => {
         id: id || ""
     });
 
-    if (loading) return <div>Loading...</div>
+    if (loading) return <FullBlogSkeleton />
 
     if (!blog) return <div>Not found</div>;
 
