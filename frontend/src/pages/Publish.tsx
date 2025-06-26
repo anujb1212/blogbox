@@ -3,13 +3,23 @@ import Link from "@tiptap/extension-link";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import axios from "axios";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BACKEND_URL } from "../config";
+import NavBar from "../components/NavBar";
 
 export default function Publish() {
     const [title, setTitle] = useState("");
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    // Check authentication on component mount
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            navigate("/signin");
+        }
+    }, [navigate]);
 
     const editor = useEditor({
         extensions: [StarterKit, Image, Link],
@@ -24,37 +34,80 @@ export default function Publish() {
     }, [editor]);
 
     const handlePublish = async () => {
+        if (loading) return;
+
         const blogContent = editor?.getHTML();
         const token = localStorage.getItem("token");
 
         if (!token || token === "undefined" || token.trim() === "") {
             alert("You are not logged in!");
+            navigate("/signin");
             return;
         }
 
-        try {
-            const response = await axios.post(`${BACKEND_URL}/api/v1/blog`, {
-                title,
-                content: blogContent,
-                createdAt: new Date().toISOString()
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            alert("Blog published successfully!")
-            console.log("Response:", response.data.id)
-            navigate(`/blog/${response.data.id}`)
-
-        } catch (error) {
-            console.error("Publish error:", error);
-            alert("Failed to publish blog");
+        if (!title.trim()) {
+            alert("Title is required");
+            return;
         }
-    };
+
+        if (!blogContent || blogContent.trim() === "" || blogContent === "<p></p>") {
+            alert("Content is required");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const response = await axios.post(
+                `${BACKEND_URL}/api/v1/blog`,
+                {
+                    title: title.trim(),
+                    content: blogContent,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                }
+            );
+
+            alert("Blog published successfully!");
+            navigate(`/blog/${response.data.id}`);
+        } catch (error: unknown) {
+            console.error("Publish error:", error);
+
+            let errorMessage = "Failed to publish blog";
+            let statusCode: number | undefined;
+
+            if (error && typeof error === "object") {
+                const err = error as {
+                    response?: {
+                        data?: { message?: string };
+                        status?: number;
+                    };
+                    message?: string;
+                };
+
+                errorMessage = err.response?.data?.message || err.message || errorMessage;
+                statusCode = err.response?.status;
+            }
+
+            alert(errorMessage);
+
+            // If unauthorized, redirect to signin
+            if (statusCode === 403) {
+                localStorage.removeItem("token");
+                navigate("/signin");
+            }
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <>
+            <NavBar />
             <div className="max-w-3xl mx-auto mt-10 p-4 border border-gray-300 rounded-xl shadow-md bg-white">
                 {/* Title Input */}
                 <input
@@ -128,9 +181,10 @@ export default function Publish() {
             <div className="max-w-3xl mx-auto mt-4 flex justify-end">
                 <button
                     onClick={handlePublish}
-                    className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-xl"
+                    disabled={loading}
+                    className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Publish Post
+                    {loading ? "Publishing..." : "Publish Post"}
                 </button>
             </div>
         </>

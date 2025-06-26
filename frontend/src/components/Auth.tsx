@@ -11,6 +11,7 @@ interface AuthProps {
 const Auth = (props: AuthProps) => {
     const { type } = props;
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
     const [credentials, setCredentials] = useState<SignupInput>({
         name: "",
         email: "",
@@ -18,17 +19,47 @@ const Auth = (props: AuthProps) => {
     })
 
     async function authRequest() {
+        if (loading) return;
+
+        // Basic validation
+        if (!credentials.email || !credentials.password) {
+            alert("Email and password are required");
+            return;
+        }
+
+        if (type === "signup" && !credentials.name?.trim()) {
+            alert("Name is required for signup");
+            return;
+        }
+
+        setLoading(true);
+
         try {
             const response = await axios.post(`${BACKEND_URL}/api/v1/user/${type === "signup" ? "signup" : "signin"}`, credentials)
             const jwt = response.data.token
+
+            if (!jwt) {
+                throw new Error("No token received");
+            }
+
             localStorage.setItem("token", jwt)
             navigate("/blogs")
         } catch (err: unknown) {
-            if (err instanceof Error) {
-                alert(`Something went wrong: ${err.message}`);
-            } else {
-                alert("An unknown error occurred");
+            console.error("Auth error:", err);
+
+            let errorMessage = "Authentication failed";
+
+            if (err && typeof err === "object") {
+                const axiosError = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
+                errorMessage = axiosError.response?.data?.error ||
+                    axiosError.response?.data?.message ||
+                    axiosError.message ||
+                    errorMessage;
             }
+
+            alert(`Something went wrong: ${errorMessage}`);
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -66,7 +97,14 @@ const Auth = (props: AuthProps) => {
                             password: e.target.value
                         })
                     }} />
-                    <button type="button" onClick={authRequest} className="mt-8 w-full text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">{type === "signup" ? "Sign up" : "Sign in"}</button>
+                    <button
+                        type="button"
+                        onClick={authRequest}
+                        disabled={loading}
+                        className="mt-8 w-full text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loading ? "Loading..." : (type === "signup" ? "Sign up" : "Sign in")}
+                    </button>
                 </div>
             </div>
         </div>

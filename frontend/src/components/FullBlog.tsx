@@ -1,13 +1,50 @@
 import { Blog } from "../hooks";
 import { Avatar } from "./BlogCard";
 import NavBar from "./NavBar";
+import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
+import { BACKEND_URL } from "../config";
+import { jwtDecode } from "jwt-decode";
 
 const FullBlog = ({ blog }: { blog: Blog }) => {
+    const navigate = useNavigate();
     const publishedDate = new Date(blog.createdAt || blog.publishedAt || Date.now()).toLocaleDateString("en-IN", {
         day: "numeric",
         month: "long",
         year: "numeric"
     });
+
+    const token = localStorage.getItem("token");
+    let isAuthor = false;
+
+    try {
+        if (token) {
+            const decoded: { id: string } = jwtDecode(token);
+            isAuthor = decoded.id === blog.author.id;
+        }
+    } catch (err) {
+        console.error("JWT decode failed:", err);
+    }
+
+    const handleDelete = async () => {
+        if (!token) return alert("Unauthorized");
+
+        const confirmed = window.confirm("Are you sure you want to delete this post?");
+        if (!confirmed) return;
+
+        try {
+            await axios.delete(`${BACKEND_URL}/api/v1/blog/${blog.id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }
+            });
+            alert("Blog deleted successfully");
+            navigate("/blogs");
+        } catch (err) {
+            console.error("Delete error:", err);
+            alert("Failed to delete blog");
+        }
+    };
 
     return (
         <div className="min-h-screen bg-white text-gray-900">
@@ -25,7 +62,7 @@ const FullBlog = ({ blog }: { blog: Blog }) => {
                         </p>
                         <div
                             className="text-lg leading-relaxed text-gray-800"
-                            dangerouslySetInnerHTML={{ __html: blog.content }} // render HTML
+                            dangerouslySetInnerHTML={{ __html: blog.content }}
                         />
                     </div>
 
@@ -45,6 +82,24 @@ const FullBlog = ({ blog }: { blog: Blog }) => {
                                 </p>
                             </div>
                         </div>
+
+                        {/* Show only if current user is author */}
+                        {isAuthor && (
+                            <div className="mt-6 space-y-2">
+                                <button
+                                    onClick={handleDelete}
+                                    className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg"
+                                >
+                                    Delete Post
+                                </button>
+                                <br />
+                                <Link to={`/edit/${blog.id}`}>
+                                    <button className="text-blue-600 underline text-sm">
+                                        Edit this post
+                                    </button>
+                                </Link>
+                            </div>
+                        )}
                     </div>
 
                 </div>
@@ -53,4 +108,4 @@ const FullBlog = ({ blog }: { blog: Blog }) => {
     );
 };
 
-export default FullBlog
+export default FullBlog;

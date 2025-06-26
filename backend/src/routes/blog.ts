@@ -7,24 +7,20 @@ import { verify } from 'hono/jwt';
 interface Environment {
     Bindings: {
         DATABASE_URL: string;
-        JWT_SECRET: string
+        JWT_SECRET: string;
     },
     Variables: {
-        userId: string
+        userId: string;
     }
 }
 
 export const blogRouter = new Hono<Environment>();
 
-//Route for fetching all the blogs
+// Route to fetch all blog posts (public - no auth needed)
 blogRouter.get('/bulk', async (c) => {
     try {
         const prisma = new PrismaClient({
-            datasources: {
-                db: {
-                    url: c.env?.DATABASE_URL,
-                }
-            }
+            datasourceUrl: c.env.DATABASE_URL,
         }).$extends(withAccelerate());
 
         const allBlogPosts = await prisma.post.findMany({
@@ -38,13 +34,13 @@ blogRouter.get('/bulk', async (c) => {
                         name: true
                     }
                 }
+            },
+            orderBy: {
+                createdAt: 'desc'
             }
         });
 
-
-        return c.json({
-            allBlogPosts
-        });
+        return c.json({ allBlogPosts });
 
     } catch (err) {
         console.error(err);
@@ -52,42 +48,44 @@ blogRouter.get('/bulk', async (c) => {
     }
 });
 
-//Route to access existing blog post
+// Route to fetch a specific blog post (public - no auth needed)
 blogRouter.get('/:id', async (c) => {
     try {
         const prisma = new PrismaClient({
-            datasourceUrl: c.env?.DATABASE_URL,
-        }).$extends(withAccelerate())
+            datasourceUrl: c.env.DATABASE_URL,
+        }).$extends(withAccelerate());
 
         const id = c.req.param("id");
+
         const existingBlogPost = await prisma.post.findFirst({
-            where: {
-                id: id
-            },
+            where: { id },
             select: {
                 id: true,
                 title: true,
                 content: true,
+                createdAt: true,
                 author: {
                     select: {
-                        name: true
+                        name: true,
+                        id: true
                     }
                 }
             }
-        })
+        });
 
-        return c.json({
-            existingBlogPost
-        })
+        if (!existingBlogPost) {
+            return c.json({ message: "Blog post not found" }, 404);
+        }
 
+        return c.json({ existingBlogPost });
 
     } catch (err) {
-        console.error(err)
-        c.status(403)
-        c.json({ message: "Error while fetching your blog post" })
+        console.error(err);
+        return c.json({ message: "Error while fetching the blog post" }, 500);
     }
-})
+});
 
+// Middleware to verify JWT and set userId (for protected routes)
 blogRouter.use('/*', async (c, next) => {
     try {
         const authHeader = c.req.header("Authorization") || "";
@@ -96,49 +94,41 @@ blogRouter.use('/*', async (c, next) => {
         }
 
         const token = authHeader.split(" ")[1];
+        const user = await verify(token, c.env.JWT_SECRET);
 
-        const user = await verify(token, c.env.JWT_SECRET)
-
-        if (user && typeof user.id === 'string') {
-            c.set("userId", user.id)
-            await next()
+        if (user && typeof user.id === "string") {
+            c.set("userId", user.id);
+            await next();
         } else {
-            c.status(403)
-            return c.json({ error: "Unauthorized" })
+            return c.json({ error: "Unauthorized" }, 403);
         }
 
-        console.log("Authorization Header:", c.req.header("Authorization"));
-
-
     } catch (err) {
-        console.error(err)
-        c.status(403)
-        return c.json({ error: "Unauthorized" })
+        console.error(err);
+        return c.json({ error: "Unauthorized" }, 403);
     }
-})
+});
 
-// Route for creating a new blog post
-blogRouter.post("/", async (c) => {
+// Route to create a new blog post (protected)
+blogRouter.post('/', async (c) => {
     try {
         const prisma = new PrismaClient({
-            datasourceUrl: c.env?.DATABASE_URL,
+            datasourceUrl: c.env.DATABASE_URL,
         }).$extends(withAccelerate());
 
         const body = await c.req.json();
-        const { success } = updateBlog.safeParse(body)
-        if (!success) {
-            c.status(411)
-            return c.json({
-                message: "Invalid Inputs"
-            })
+        const parsed = createBlog.safeParse(body);
+
+        if (!parsed.success) {
+            return c.json({ message: "Invalid Inputs", errors: parsed.error.errors }, 411);
         }
 
         const authorId = c.get("userId");
 
         const newBlogPost = await prisma.post.create({
             data: {
-                title: body.title,
-                content: body.content,
+                title: parsed.data.title,
+                content: parsed.data.content,
                 authorId: authorId,
             },
         });
@@ -148,47 +138,85 @@ blogRouter.post("/", async (c) => {
             title: newBlogPost.title,
             createdAt: newBlogPost.createdAt,
         });
+
     } catch (err) {
         console.error("Post Error:", err);
-        c.status(403);
-        return c.json({ message: "Post not created" });
+        return c.json({ message: "Post not created" }, 500);
     }
 });
 
-
-//Route for updating the blog post
+// Route to update a blog post (protected - only by actual author)
 blogRouter.put('/', async (c) => {
     try {
         const prisma = new PrismaClient({
-            datasourceUrl: c.env?.DATABASE_URL,
-        }).$extends(withAccelerate())
+            datasourceUrl: c.env.DATABASE_URL,
+        }).$extends(withAccelerate());
 
         const body = await c.req.json();
-        const { success } = updateBlog.safeParse(body)
-        if (!success) {
-            c.status(411)
-            return c.json({
-                message: "Invalid Inputs"
-            })
+        const parsed = updateBlog.safeParse(body);
+
+        if (!parsed.success) {
+            return c.json({ message: "Invalid Inputs", errors: parsed.error.errors }, 411);
         }
-        const updateBlogPost = await prisma.post.update({
+
+        const userId = c.get("userId");
+
+        const existingPost = await prisma.post.findFirst({
             where: {
-                id: body.id
-            },
-            data: {
-                title: body.title,
-                content: body.content,
+                id: parsed.data.id,
+                authorId: userId
             }
-        })
+        });
 
-        return c.json({
-            id: updateBlogPost.id
-        })
+        if (!existingPost) {
+            return c.json({ message: "Unauthorized or blog not found" }, 403);
+        }
+
+        const updatedPost = await prisma.post.update({
+            where: { id: parsed.data.id },
+            data: {
+                title: parsed.data.title,
+                content: parsed.data.content,
+            }
+        });
+
+        return c.json({ id: updatedPost.id });
+
     } catch (err) {
-        console.error(err)
-        c.status(403)
-        c.json({ message: "Post did not update" })
+        console.error(err);
+        return c.json({ message: "Post did not update" }, 500);
     }
-})
+});
 
+// Route to delete a blog post (protected - only by actual author)
+blogRouter.delete('/:id', async (c) => {
+    try {
+        const prisma = new PrismaClient({
+            datasourceUrl: c.env.DATABASE_URL,
+        }).$extends(withAccelerate());
 
+        const blogId = c.req.param("id");
+        const userId = c.get("userId");
+
+        const existingPost = await prisma.post.findFirst({
+            where: {
+                id: blogId,
+                authorId: userId
+            }
+        });
+
+        if (!existingPost) {
+            return c.json({ message: "Unauthorized or Blog not found" }, 403);
+        }
+
+        await prisma.post.delete({
+            where: { id: blogId }
+        });
+
+        return c.json({ message: "Blog deleted successfully" });
+
+    } catch (err) {
+        console.error("Delete error:", err);
+        return c.json({ message: "Failed to delete post" }, 500);
+    }
+});
