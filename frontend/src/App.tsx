@@ -6,6 +6,8 @@ import Blogs from './pages/Blogs';
 import Publish from './pages/Publish';
 import EditBlog from './pages/EditBlog';
 import Landing from './pages/Landing';
+import NotFound from './pages/NotFound';
+import MyBlogs from './pages/MyBlogs';
 
 function App() {
   return (
@@ -16,8 +18,10 @@ function App() {
         <Route path='/signin' element={<Signin />} />
         <Route path='/blogs' element={<Blogs />} />
         <Route path='/blog/:id' element={<Blog />} />
+        <Route path="/my-blogs" element={<MyBlogs />} />
         <Route path='/publish' element={<Publish />} />
         <Route path='/edit/:id' element={<EditBlog />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
