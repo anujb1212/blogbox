@@ -48,9 +48,9 @@ export default function MyBlogs() {
                         </h2>
                         <button
                             onClick={() => navigate('/publish')}
-                            className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium'
+                            className='bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white px-5 py-2 rounded-full text-lg font-semibold shadow-md transition duration-200 cursor-pointer'
                         >
-                            Write Your First Blog
+                            Publish Your First Blog
                         </button>
                     </div>
                 ) : (

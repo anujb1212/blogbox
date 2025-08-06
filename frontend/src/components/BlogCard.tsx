@@ -1,6 +1,6 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { jwtDecode } from 'jwt-decode'
 import axios from 'axios'
+import { jwtDecode } from 'jwt-decode'
+import { useNavigate } from 'react-router-dom'
 import { BACKEND_URL } from '../config'
 import { useToast } from '../hooks'
 import ToastRenderer from './ToastRenderer'
@@ -64,51 +64,54 @@ const BlogCard = ({
 
     return (
         <>
-            <Link to={`/blog/${id}`}>
-                <div className='w-[75%] mx-auto p-8 mb-6 shadow-md h-auto relative z-0 rounded-lg transition-all duration-300 hover:scale-105 cursor-pointer'>
-                    <div className='flex'>
-                        <div className='flex justify-center flex-col'>
-                            <Avatar name={authorName} size='small' />
+            <div
+                className='w-[75%] mx-auto p-8 mb-6 shadow-md h-auto relative z-0 rounded-lg transition-all duration-300 hover:scale-105 cursor-pointer'
+                onClick={() => {
+                    navigate(`/blog/${id}`)
+                }}
+            >
+                <div className='flex'>
+                    <div className='flex justify-center flex-col'>
+                        <Avatar name={authorName} size='small' />
+                    </div>
+                    <div className='flex items-center'>
+                        <div className='flex justify-center flex-col ml-2 text-sm font-medium text-gray-800'>
+                            {authorName}
                         </div>
-                        <div className='flex items-center'>
-                            <div className='flex justify-center flex-col ml-2 text-sm font-medium text-gray-800'>
-                                {authorName}
-                            </div>
-                            <div className='flex ml-1 text-sm font-extralight justify-center flex-col text-gray-500'>
-                                | {publishedDate}
-                            </div>
+                        <div className='flex ml-1 text-sm font-extralight justify-center flex-col text-gray-500'>
+                            | {publishedDate}
                         </div>
                     </div>
-
-                    <div className='text-xl font-bold mt-2'>{title}</div>
-                    <div className='text-md mt-1'>
-                        {content.length < 100 ? content : content.slice(0, 100) + '...'}
-                    </div>
-                    <div className='mt-5 text-sm font-extralight text-gray-500'>
-                        {`${Math.ceil(content.length / 100)} min read`}
-                    </div>
-
-                    {currentUserId && authorId === currentUserId && (
-                        <div className='mt-4 flex gap-4'>
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault()
-                                    navigate(`/edit/${id}`)
-                                }}
-                                className='text-sm px-3 py-1 rounded-md border border-blue-600 text-blue-600 hover:bg-blue-50'
-                            >
-                                Edit
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className='text-sm px-3 py-1 rounded-md border border-red-600 text-red-600 hover:bg-red-50'
-                            >
-                                Delete
-                            </button>
-                        </div>
-                    )}
                 </div>
-            </Link>
+
+                <div className='text-xl font-bold mt-2'>{title}</div>
+                <div className='text-md mt-1'>
+                    {content.length < 100 ? content : content.slice(0, 100) + '...'}
+                </div>
+                <div className='mt-5 text-sm font-extralight text-gray-500'>
+                    {`${Math.ceil(content.length / 100)} min read`}
+                </div>
+
+                {currentUserId && authorId === currentUserId && (
+                    <div className='mt-4 flex gap-4'>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                navigate(`/edit/${id}`)
+                            }}
+                            className='text-sm px-3 py-1 rounded-md border border-blue-600 text-blue-600 hover:bg-blue-50'
+                        >
+                            Edit
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            className='text-sm px-3 py-1 rounded-md border border-red-600 text-red-600 hover:bg-red-50'
+                        >
+                            Delete
+                        </button>
+                    </div>
+                )}
+            </div>
 
             <ToastRenderer message={toastMessage} type={toastType} onClose={clear} />
         </>
@@ -125,4 +128,5 @@ function Avatar({ name, size = 'small' }: { name: string; size: 'small' | 'big' 
     )
 }
 
-export { BlogCard, Avatar }
+export { Avatar, BlogCard }
+

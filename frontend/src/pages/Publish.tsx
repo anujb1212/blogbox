@@ -48,7 +48,7 @@ export default function Publish() {
             return
         }
 
-        if (!blogContent || blogContent.trim() === '' || blogContent === '<p></p>') {
+        if (!blogContent || blogContent.trim() === '' || blogContent === '') {
             show('Content is required', 'error')
             return
         }
